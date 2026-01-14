@@ -1,9 +1,18 @@
 {
-  "private": true,
   "name": "openwork",
   "version": "0.1.0",
   "description": "A tactical agent interface for deepagentsjs",
   "main": "./out/main/index.js",
+  "files": [
+    "out/",
+    "bin/",
+    "resources/",
+    "LICENSE",
+    "README.md"
+  ],
+  "bin": {
+    "openwork": "./bin/cli.js"
+  },
   "author": "LangChain",
   "license": "MIT",
   "homepage": "https://github.com/langchain-ai/openwork",
@@ -23,6 +32,9 @@
     "langgraph",
     "desktop"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -31,23 +43,13 @@
     "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
-    "build": "pnpm run typecheck && electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "electron-vite build && electron-builder --dir",
-    "build:win": "electron-vite build && electron-builder --win --x64",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:mac:x64": "electron-vite build && electron-builder --mac --x64",
-    "build:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
-    "build:linux": "electron-vite build && electron-builder --linux",
-    "build:linux:x64": "electron-vite build && electron-builder --linux --x64",
-    "build:linux:arm64": "electron-vite build && electron-builder --linux --arm64"
+    "build": "pnpm run typecheck && electron-vite build"
   },
   "dependencies": {
+    "electron": "^39.2.6",
     "@langchain/anthropic": "^1.3.7",
     "@langchain/core": "^1.1.12",
     "@langchain/langgraph": "^1.0.15",
-    "ansi-styles": "^4.3.0",
-    "chalk": "^4.1.2",
     "@langchain/langgraph-checkpoint": "^1.0.0",
     "@langchain/langgraph-sdk": "^1.5.3",
     "@langchain/openai": "^1.2.1",
@@ -89,7 +91,6 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^39.2.6",
-    "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",

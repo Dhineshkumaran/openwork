@@ -64,6 +64,7 @@ export function ApiKeyDialog({ open, onOpenChange, provider }: ApiKeyDialogProps
   }
 
   async function handleDelete() {
+    if (!provider) return
     setDeleting(true)
     try {
       await deleteApiKey(provider.id)

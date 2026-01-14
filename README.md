@@ -19,7 +19,7 @@ A tactical agent interface for [deepagentsjs](https://github.com/langchain-ai/de
 ### npm (recommended)
 
 ```bash
-# Run directly (downloads binary on first run)
+# Run directly
 npx openwork
 
 # Or install globally
@@ -27,24 +27,7 @@ npm install -g openwork
 openwork
 ```
 
-### Homebrew (macOS)
-
-```bash
-brew tap langchain-ai/tap
-brew install --cask openwork
-```
-
-### Direct Download
-
-Download the latest release for your platform from the [releases page](https://github.com/langchain-ai/openwork/releases).
-
-| Platform | Download |
-|----------|----------|
-| macOS (Apple Silicon) | `.dmg` |
-| macOS (Intel) | `.dmg` |
-| Linux (x64) | `.AppImage`, `.deb` |
-| Linux (ARM64) | `.AppImage`, `.deb` |
-| Windows (x64) | `.exe` |
+Requires Node.js 18+. Electron is installed automatically as a dependency.
 
 ### From Source
 
@@ -125,13 +108,6 @@ pnpm run dev
 
 # Build for production
 pnpm run build
-
-# Build for specific platform
-pnpm run build:mac        # macOS (current arch)
-pnpm run build:mac:arm64  # macOS Apple Silicon
-pnpm run build:mac:x64    # macOS Intel
-pnpm run build:linux      # Linux (current arch)
-pnpm run build:win        # Windows
 ```
 
 ## Releases
@@ -141,9 +117,9 @@ To publish a new release:
 1. Create a git tag: `git tag v0.2.0`
 2. Push the tag: `git push origin v0.2.0`
 3. GitHub Actions will:
-   - Build Electron apps for all platforms
-   - Create a GitHub release with installers
-   - Publish the npm package with embedded checksums
+   - Build the application
+   - Publish to npm
+   - Create a GitHub release
 
 ## Design System
 

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { registerAgentHandlers } from './ipc/agent'
 import { registerThreadHandlers } from './ipc/threads'
@@ -51,6 +51,19 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   if (process.platform === 'win32') {
     app.setAppUserModelId(isDev ? process.execPath : 'com.langchain.openwork')
+  }
+
+  // Set dock icon on macOS
+  if (process.platform === 'darwin' && app.dock) {
+    const iconPath = join(__dirname, '../../resources/icon.png')
+    try {
+      const icon = nativeImage.createFromPath(iconPath)
+      if (!icon.isEmpty()) {
+        app.dock.setIcon(icon)
+      }
+    } catch {
+      // Icon not found, use default
+    }
   }
 
   // Default open or close DevTools by F12 in development

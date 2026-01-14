@@ -14,14 +14,9 @@ permissions:
   contents: write
 
 jobs:
-  # ==========================================================================
-  # Job 1: Validate the release
-  # ==========================================================================
-  validate:
-    name: Validate Release
+  release:
+    name: Build and Publish
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,148 +39,13 @@ jobs:
 
       - name: Validate secrets
         run: |
-          missing=()
-          [ -z "$NPM_TOKEN" ] && missing+=("NPM_TOKEN")
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::Missing required secret: NPM_TOKEN"
             exit 1
           fi
           echo "✅ All required secrets are configured"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  # ==========================================================================
-  # Job 2: Build Electron apps for each platform
-  # ==========================================================================
-  build:
-    name: Build (${{ matrix.platform }})
-    needs: validate
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            platform: darwin-arm64
-            build_cmd: build:mac:arm64
-          - os: macos-15-intel
-            platform: darwin-x64
-            build_cmd: build:mac:x64
-          - os: ubuntu-latest
-            platform: linux-x64
-            build_cmd: build:linux:x64
-          # Note: linux-arm64 uses cross-compilation (ARM runners not available for private repos)
-          - os: ubuntu-latest
-            platform: linux-arm64
-            build_cmd: build:linux:arm64
-          - os: windows-latest
-            platform: win32-x64
-            build_cmd: build:win
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set version in package.json
-        run: |
-          npm version ${{ needs.validate.outputs.version }} --no-git-tag-version --allow-same-version
-          echo "Updated package.json to version ${{ needs.validate.outputs.version }}"
-
-      - name: Build Electron app
-        run: npm run ${{ matrix.build_cmd }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ matrix.platform }}
-          path: |
-            release/*.dmg
-            release/*.zip
-            release/*.exe
-            release/*.msi
-            release/*.AppImage
-            release/*.deb
-          retention-days: 7
-          if-no-files-found: warn
-
-  # ==========================================================================
-  # Job 3: Create GitHub Release
-  # ==========================================================================
-  github-release:
-    name: Create GitHub Release
-    needs: [validate, build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-files/
-          pattern: release-*
-          merge-multiple: true
-
-      - name: List release files
-        run: |
-          echo "Release files:"
-          ls -la release-files/ || echo "No files found"
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: v${{ needs.validate.outputs.version }}
-          body: |
-            ## openwork v${{ needs.validate.outputs.version }}
-
-            ### Installation
-
-            **npm**
-            ```bash
-            npx openwork
-            ```
-
-            **Direct Download**
-            Download the appropriate installer below for your platform.
-
-            ### Platform Support
-
-            | Platform | Download |
-            |----------|----------|
-            | macOS (Apple Silicon) | `.dmg` |
-            | macOS (Intel) | `.dmg` |
-            | Linux (x64) | `.AppImage`, `.deb` |
-            | Linux (ARM64) | `.AppImage`, `.deb` |
-            | Windows (x64) | `.exe` |
-
-            ### Links
-
-            - [Documentation](https://github.com/langchain-ai/openwork#readme)
-            - [npm package](https://www.npmjs.com/package/openwork)
-          files: release-files/*
-          draft: false
-          prerelease: ${{ contains(needs.validate.outputs.version, '-') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ==========================================================================
-  # Job 4: Publish npm package
-  # ==========================================================================
-  publish-npm:
-    name: Publish to npm
-    needs: [validate, build, github-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -193,63 +53,47 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-files/
-          pattern: release-*
-          merge-multiple: true
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Generate checksums
+      - name: Set version in package.json
         run: |
-          echo "Generating checksums for release files..."
-          cd release-files
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+          echo "Updated package.json to version ${{ steps.version.outputs.version }}"
 
-          # Create checksums JSON
-          echo '{' > checksums.json
-          echo '  "algorithm": "sha256",' >> checksums.json
-          echo '  "files": {' >> checksums.json
-
-          first=true
-          for file in *.zip *.AppImage; do
-            if [ -f "$file" ]; then
-              checksum=$(sha256sum "$file" | cut -d' ' -f1)
-              if [ "$first" = true ]; then
-                first=false
-              else
-                echo ',' >> checksums.json
-              fi
-              printf '    "%s": "%s"' "$file" "$checksum" >> checksums.json
-            fi
-          done
-
-          echo '' >> checksums.json
-          echo '  }' >> checksums.json
-          echo '}' >> checksums.json
-
-          echo "Generated checksums:"
-          cat checksums.json
-
-      - name: Prepare npm package
-        run: |
-          VERSION="${{ needs.validate.outputs.version }}"
-
-          # Copy checksums to npm package
-          cp release-files/checksums.json distributions/npm/lib/checksums.json
-
-          # Update package.json version
-          cd distributions/npm
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
-
-          echo "Package contents:"
-          ls -la
-          echo ""
-          echo "Checksums:"
-          cat lib/checksums.json
+      - name: Build
+        run: npm run build
 
       - name: Publish to npm
-        run: |
-          cd distributions/npm
-          npm publish --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          body: |
+            ## openwork v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            ```bash
+            # Run directly
+            npx openwork
+
+            # Or install globally
+            npm install -g openwork
+            openwork
+            ```
+
+            Requires Node.js 18+. Electron is installed automatically as a dependency.
+
+            ### Links
+
+            - [Documentation](https://github.com/langchain-ai/openwork#readme)
+            - [npm package](https://www.npmjs.com/package/openwork)
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

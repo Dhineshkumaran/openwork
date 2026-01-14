@@ -1,13 +1,44 @@
 import { resolve } from 'path'
-import { readFileSync } from 'fs'
+import { readFileSync, copyFileSync, existsSync, mkdirSync } from 'fs'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
+// Plugin to copy resources to output
+function copyResources() {
+  return {
+    name: 'copy-resources',
+    closeBundle() {
+      const srcIcon = resolve('resources/icon.png')
+      const destDir = resolve('out/resources')
+      const destIcon = resolve('out/resources/icon.png')
+
+      if (existsSync(srcIcon)) {
+        if (!existsSync(destDir)) {
+          mkdirSync(destDir, { recursive: true })
+        }
+        copyFileSync(srcIcon, destIcon)
+      }
+    }
+  }
+}
+
 export default defineConfig({
-  main: {},
+  main: {
+    // Bundle all dependencies into the main process
+    build: {
+      lib: {
+        entry: 'src/main/index.ts',
+        formats: ['cjs']
+      },
+      rollupOptions: {
+        external: ['electron'],
+        plugins: [copyResources()]
+      }
+    }
+  },
   preload: {},
   renderer: {
     define: {

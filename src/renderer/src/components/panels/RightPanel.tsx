@@ -505,7 +505,7 @@ function FilesContent(): React.JSX.Element {
   const { workspaceFiles, workspacePath, currentThreadId, setWorkspacePath, setWorkspaceFiles } =
     useAppStore()
   const [syncing, setSyncing] = useState(false)
-  const [syncSuccess, setSyncSuccess] = useState(false)
+  const [syncSuccess, _setSyncSuccess] = useState(false)
 
   // Load workspace path and files for current thread
   useEffect(() => {
@@ -548,6 +548,7 @@ function FilesContent(): React.JSX.Element {
   }
 
   // Handle sync to disk
+  // TODO: Implement syncToDisk API in main process
   async function handleSyncToDisk(): Promise<void> {
     if (!currentThreadId) return
 
@@ -557,26 +558,8 @@ function FilesContent(): React.JSX.Element {
       return
     }
 
-    setSyncing(true)
-    setSyncSuccess(false)
-
-    try {
-      const result = await window.api.workspace.syncToDisk(currentThreadId)
-
-      if (result.success) {
-        setSyncSuccess(true)
-        if (result.targetPath) {
-          setWorkspacePath(result.targetPath)
-        }
-        setTimeout(() => setSyncSuccess(false), 2000)
-      } else {
-        console.error('[FilesContent] Sync failed:', result.error)
-      }
-    } catch (e) {
-      console.error('[FilesContent] Sync error:', e)
-    } finally {
-      setSyncing(false)
-    }
+    // syncToDisk is not yet implemented
+    console.warn('[FilesContent] syncToDisk is not yet implemented')
   }
 
   return (
