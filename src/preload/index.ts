@@ -179,6 +179,7 @@ const api = {
     readFile: (threadId: string, filePath: string): Promise<{
       success: boolean
       content?: string
+      source?: 'virtual' | 'disk'
       size?: number
       modified_at?: string
       error?: string

@@ -134,11 +134,11 @@ export function ModelSwitcher() {
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-[480px] p-0 bg-background border-border" 
+          className="w-[420px] p-0 bg-background border-border" 
           align="start"
           sideOffset={8}
         >
-          <div className="flex min-h-[280px]">
+          <div className="flex min-h-[240px]">
             {/* Provider column */}
             <div className="w-[140px] border-r border-border p-2 bg-muted/30">
               <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2 py-1.5">
@@ -152,16 +152,16 @@ export function ModelSwitcher() {
                       key={provider.id}
                       onClick={() => handleProviderClick(provider)}
                       className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm transition-colors text-left",
+                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs transition-colors text-left",
                         selectedProviderId === provider.id
                           ? "bg-muted text-foreground"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
-                      {Icon && <Icon className="size-4 shrink-0" />}
+                      {Icon && <Icon className="size-3.5 shrink-0" />}
                       <span className="flex-1 truncate">{provider.name}</span>
                       {!provider.hasApiKey && (
-                        <AlertCircle className="size-3.5 text-status-warning shrink-0" />
+                        <AlertCircle className="size-3 text-status-warning shrink-0" />
                       )}
                     </button>
                   )
@@ -177,9 +177,9 @@ export function ModelSwitcher() {
               
               {selectedProvider && !selectedProvider.hasApiKey ? (
                 // No API key configured
-                <div className="flex flex-col items-center justify-center h-[200px] px-4 text-center">
-                  <Key className="size-8 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground mb-3">
+                <div className="flex flex-col items-center justify-center h-[180px] px-4 text-center">
+                  <Key className="size-6 text-muted-foreground mb-2" />
+                  <p className="text-xs text-muted-foreground mb-3">
                     API key required for {selectedProvider.name}
                   </p>
                   <Button
@@ -197,7 +197,7 @@ export function ModelSwitcher() {
                       key={model.id}
                       onClick={() => handleModelSelect(model.id)}
                       className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm transition-colors text-left font-mono",
+                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs transition-colors text-left font-mono",
                         currentModel === model.id
                           ? "bg-muted text-foreground"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -205,13 +205,13 @@ export function ModelSwitcher() {
                     >
                       <span className="flex-1 truncate">{model.id}</span>
                       {currentModel === model.id && (
-                        <Check className="size-4 shrink-0 text-foreground" />
+                        <Check className="size-3.5 shrink-0 text-foreground" />
                       )}
                     </button>
                   ))}
                   
                   {filteredModels.length === 0 && (
-                    <p className="text-sm text-muted-foreground px-2 py-4">
+                    <p className="text-xs text-muted-foreground px-2 py-4">
                       No models available
                     </p>
                   )}

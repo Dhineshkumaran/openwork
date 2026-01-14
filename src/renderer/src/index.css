@@ -355,6 +355,43 @@
   -webkit-app-region: no-drag;
 }
 
+/* Traffic light safe area for macOS - dynamically updated via JS */
+:root {
+  --sidebar-safe-padding: 0px;
+}
+
+/* App badge that stays fixed size regardless of zoom (position/scale set via JS) */
+.app-badge {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  line-height: 1;
+  pointer-events: none;
+  -webkit-app-region: drag;
+}
+
+.app-badge-name {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.app-badge-version {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: color-mix(in srgb, var(--primary) 70%, transparent);
+  line-height: 1;
+}
+
 /* Shiki syntax highlighting styles */
 .shiki-wrapper {
   font-size: 0.875rem;

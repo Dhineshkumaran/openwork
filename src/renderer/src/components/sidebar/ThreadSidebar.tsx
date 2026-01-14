@@ -49,8 +49,8 @@ export function ThreadSidebar(): React.JSX.Element {
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-border bg-sidebar overflow-hidden">
-      {/* New Thread Button */}
-      <div className="p-2">
+      {/* New Thread Button - with dynamic safe area padding when zoomed out */}
+      <div className="p-2" style={{ paddingTop: 'calc(8px + var(--sidebar-safe-padding, 0px))' }}>
         <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleNewThread}>
           <Plus className="size-4" />
           New Thread

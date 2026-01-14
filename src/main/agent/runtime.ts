@@ -1,39 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { createDeepAgent } from 'deepagents'
+import { createDeepAgent, StateBackend, FilesystemBackend } from 'deepagents'
+import type { BackendProtocol } from 'deepagents'
+import type { BaseStore } from '@langchain/langgraph-checkpoint'
 import { app } from 'electron'
 import { join } from 'path'
 import { getDefaultModel, getApiKey } from '../ipc/models'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { ChatOpenAI } from '@langchain/openai'
 import { SqlJsSaver } from '../checkpointer/sqljs-saver'
-import { createSyncedBackendFactory } from './synced-backend'
 
 import type * as _lcTypes from 'langchain'
 import type * as _lcMessages from '@langchain/core/messages'
 import type * as _lcLanggraph from '@langchain/langgraph'
 import type * as _lcZodTypes from '@langchain/core/utils/types'
 
+// Local type definition (matches deepagents StateAndStore)
+interface StateAndStore {
+  state: unknown
+  store?: BaseStore
+  assistantId?: string
+}
+
 // Singleton checkpointer instance
 let checkpointer: SqlJsSaver | null = null
-
-// Global workspace path for filesystem sync
-let globalWorkspacePath: string | null = null
-
-/**
- * Set the workspace path for filesystem synchronization.
- * When set, files created by the agent will be synced to this directory.
- */
-export function setWorkspacePath(path: string | null): void {
-  globalWorkspacePath = path
-  console.log('[Runtime] Workspace path set to:', path)
-}
-
-/**
- * Get the current workspace path.
- */
-export function getWorkspacePath(): string | null {
-  return globalWorkspacePath
-}
 
 export async function getCheckpointer(): Promise<SqlJsSaver> {
   if (!checkpointer) {
@@ -82,16 +71,37 @@ function getModelInstance(modelId?: string): ChatAnthropic | ChatOpenAI | string
 export interface CreateAgentRuntimeOptions {
   /** Model ID to use (defaults to configured default model) */
   modelId?: string
-  /** Workspace path to sync files to (overrides global setting) */
+  /** Workspace path - if set, uses FilesystemBackend; otherwise uses StateBackend */
   workspacePath?: string | null
 }
 
 // Create agent runtime with configured model and checkpointer
 export type AgentRuntime = ReturnType<typeof createDeepAgent>
 
+/**
+ * Create a backend factory that chooses between StateBackend and FilesystemBackend.
+ *
+ * - No workspacePath → StateBackend (virtual files in LangGraph state, isolated per thread)
+ * - With workspacePath → FilesystemBackend (files on disk)
+ */
+function createBackendFactory(workspacePath: string | null) {
+  return (stateAndStore: StateAndStore): BackendProtocol => {
+    if (workspacePath) {
+      console.log('[Runtime] Using FilesystemBackend at:', workspacePath)
+      return new FilesystemBackend({
+        rootDir: workspacePath,
+        virtualMode: true // Use virtual paths starting with /
+      })
+    } else {
+      console.log('[Runtime] Using StateBackend (virtual filesystem)')
+      return new StateBackend(stateAndStore)
+    }
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export async function createAgentRuntime(options: CreateAgentRuntimeOptions = {}) {
-  const { modelId, workspacePath } = options
+  const { modelId, workspacePath = null } = options
 
   console.log('[Runtime] Creating agent runtime...')
 
@@ -101,20 +111,16 @@ export async function createAgentRuntime(options: CreateAgentRuntimeOptions = {}
   const checkpointer = await getCheckpointer()
   console.log('[Runtime] Checkpointer ready')
 
-  // Use provided workspace path, fall back to global, or null for no sync
-  const syncPath = workspacePath !== undefined ? workspacePath : globalWorkspacePath
-  console.log('[Runtime] Sync path:', syncPath)
-
-  // Using type assertion to work around version compatibility issues
-  // between @langchain packages and deepagentsjs types
   const agent = createDeepAgent({
     model,
     checkpointer,
-    // Use SyncedStateBackend to enable bidirectional disk sync
-    backend: createSyncedBackendFactory(syncPath)
+    backend: createBackendFactory(workspacePath)
   })
 
-  console.log('[Runtime] Deep agent created with', syncPath ? 'disk sync' : 'state-only storage')
+  console.log(
+    '[Runtime] Deep agent created with',
+    workspacePath ? `FilesystemBackend at ${workspacePath}` : 'StateBackend (virtual)'
+  )
   return agent
 }
 

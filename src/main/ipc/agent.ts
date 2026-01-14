@@ -1,6 +1,7 @@
 import { IpcMain, BrowserWindow } from 'electron'
 import { HumanMessage } from '@langchain/core/messages'
 import { createAgentRuntime } from '../agent/runtime'
+import { getThread } from '../db'
 import type { HITLDecision } from '../types'
 
 // Track active runs for cancellation
@@ -30,7 +31,12 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       activeRuns.set(threadId, abortController)
 
       try {
-        const agent = await createAgentRuntime()
+        // Get workspace path from thread metadata
+        const thread = getThread(threadId)
+        const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
+        const workspacePath = metadata.workspacePath as string | null
+
+        const agent = await createAgentRuntime({ workspacePath })
         const humanMessage = new HumanMessage(message)
 
         // Stream with both modes:
@@ -81,7 +87,12 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
   ipcMain.handle(
     'agent:interrupt',
     async (_event, { threadId, decision }: { threadId: string; decision: HITLDecision }) => {
-      const agent = await createAgentRuntime()
+      // Get workspace path from thread metadata
+      const thread = getThread(threadId)
+      const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
+      const workspacePath = metadata.workspacePath as string | null
+
+      const agent = await createAgentRuntime({ workspacePath })
       const config = { configurable: { thread_id: threadId } }
 
       if (decision.type === 'approve') {
